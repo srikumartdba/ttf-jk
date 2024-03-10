@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_DEFAULT_REGION = 'your_aws_region'
+    }
+
+    parameters {
+        string(name: 'SERVER_NAME', defaultValue: 'my-server', description: 'Name of the server')
+        string(name: 'AMI', defaultValue: 'ami-12345678', description: 'AMI ID for the server')
+        string(name: 'INSTANCE_TYPE', defaultValue: 't2.micro', description: 'Instance type for the server')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/srikumartdba/ttf-jk.git'
+            }
+        }
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+        stage('Terraform Apply') {
+            steps {
+                sh "terraform apply -auto-approve -var 'server_name=${params.SERVER_NAME}' -var 'region=${env.AWS_DEFAULT_REGION}' -var 'ami=${params.AMI}' -var 'instance_type=${params.INSTANCE_TYPE}'"
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleanup...'
+            sh 'terraform destroy -auto-approve'
+        }
+    }
+}
